@@ -6,7 +6,7 @@ void blowfishInitialise(BLOWFISH *blf, char *key, int keylen)
     //Initialise the array of S in blf
     for (i = 0; i < 4; i++)
         for (j = 0; j < 256; j++)
-            blf.S[i][j] = S_Arr[i];
+            blf -> S[i][j] = S_Arr[i];
 
     j = 0;
     for (i = 0; i < N + 2; i++)
@@ -22,7 +22,7 @@ void blowfishInitialise(BLOWFISH *blf, char *key, int keylen)
             if (j >= keylen)
                 j = 0;
         }
-        blf.P[i] = P_Arr[i] ^ data;
+        blf -> P[i] = P_Arr[i] ^ data;
     }
 
     data_l = data_r = 0x00000000;
@@ -30,8 +30,8 @@ void blowfishInitialise(BLOWFISH *blf, char *key, int keylen)
     for (i = 0; i < 4; i++)
     {
         encryptMessage(blf, &data_l, &data_r);
-        blf.P[i] = data_l;
-        blf.P[i+1] = data_r;
+        blf -> P[i] = data_l;
+        blf -> P[i+1] = data_r;
     }
 
     for (i = 0; i < 4; i++)
@@ -39,8 +39,8 @@ void blowfishInitialise(BLOWFISH *blf, char *key, int keylen)
         for (j = 0; j < 256; j = j + 2)
         {
             encryptMessage(blf, &data_l, &data_r);
-            blf.S[i][j] = data_l;
-            blf.S[i][j+1] = data_r;
+            blf -> S[i][j] = data_l;
+            blf -> S[i][j+1] = data_r;
         }
     }
 }
