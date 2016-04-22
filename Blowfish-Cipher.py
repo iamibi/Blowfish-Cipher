@@ -1,94 +1,15 @@
 #!/usr/bin/env python
 
-intro = """ 
-    blowfish.py
-    
-    Blowfish is a simple but effective block cipher designed 
-    by Bruce Schneier.  The design is a Feistel network with 
-    key dependent S-boxes.  Overall the algorithm is fast but 
-    the relatively long key setup time could be an issue if 
-    faced with lots of small files and frequent key changes.  
-    "Blowfish is unpatented and license-free, and is available 
-    free for all uses."  As a result, Blowfish is well known 
-    and in fairly widespread use.  
-    
-        key length: 64 to 448 bits (8 to 56 bytes)
-        blocksize:  64 bits (8 bytes)
-        rounds:     16
-        processor word-size: 32 bits
-    
-    Of note, Bruce uses the value of Pi to set the initial 
-    values of P and S.
-    
-    More at: http://www.schneier.com/blowfish.html
-             http://en.wikipedia.org/wiki/Blowfish_(cipher)
-    
-    This implementation of Blowfish is written in pure Python 
-    so obviously speed was not the top requirement.  In fact, 
-    it could well take a couple of seconds to encrypt a 100K 
-    of data.  Most C implementations are much faster.  If 
-    indeed faster Python run times are desired, consider 
-    selected optimizations such as reducing the frequency of 
-    string-to-word and word-to-string conversions, or the 
-    number of inner-loop function calls to perform them.  
-    ...AELFTS ;-)  Please note, however, that the use of byte 
-    strings for all data passing is intentional as a common 
-    denominator for consistency between platforms and 
-    languages.  
-    
-    This implementation of counter mode uses a nonce of up 
-    to 8 bytes.  Provided nonces will be truncated to 8 bytes 
-    or padded with nulls as appropriate.  The right-most bits 
-    are incremented as the counter.  If an initial value for 
-    the nonce/counter is not provided, the system clock 
-    (date-time) will be used.  
-    
-    This version is intended for Python 2.x.
-    
-    Sample usage:
-    
-        key = 'open sesame'
-        ot  = 'Now is the time for all good men....'
-        
-      CTR encrypt:
-        bf = Blowfish(key)
-        ct = bf.CTR_final(ot)           # send to recipient
-        counter0 = bf.get_counter0()    # send to recipient
-        
-      CTR decrypt:
-        bf = Blowfish(key, counter0)
-        pt = bf.CTR_final(ct)
-    
-    Remember, counter mode requires a different, unique nonce 
-    be used for each encryption using the same key, and that 
-    the decrypter will need to know the initial counter value.  
-    The nonce/counter need not be kept secret; it must simply 
-    be unique.  A common way to communicate the initial counter 
-    value is to prepend it to the ciphertext.  
-    
-    A while back Michael Gilfix wrote a pure Python version 
-    of Blowfish that was subsequently enhanced by Ivan Voras.  
-    Use Google to find them.  Because both implementations are 
-    governed by the GPL, I was motivated to create a version 
-    with fewer encumberances.  Thus...
-        
-      Copyright (c) 2011 by Larry Bugbee, Kent, WA, USA
-      ALL RIGHTS RESERVED.
-      
-      blowfish.py IS EXPERIMENTAL SOFTWARE FOR EDUCATIONAL
-      PURPOSES ONLY.  IT IS MADE AVAILABLE "AS-IS" WITHOUT 
-      WARRANTY OR GUARANTEE OF ANY KIND.  USE SIGNIFIES 
-      ACCEPTANCE OF ALL RISK.  
-    
-    To make your learning and experimentation less cumbersome, 
-    blowfish.py is free for any use.  Feel free to extend, 
-    modify, and experiment.  I choose, however, to retain my 
-    copyrights.  
-    
-"""
+# imports------------------------------------------------------
+import sys, pickle
+
+try:
+    import UtilityFunction as UF
+except ImportError as IR:
+    sys.exit("Import Error: %s"%(str(IR)))
+
 from time import time
-from copy   import deepcopy
-from struct import pack, unpack
+from copy import deepcopy
 
 # --------------------------------------------------------------
 
@@ -366,7 +287,7 @@ class Blowfish(object):
             )
         
     
-    def __init__(self, key, nonce=''):
+    def __init__(self, key, nonce = ''):
         """ creates an instance of Blowfish and sets up the 
             key by dispersing its value through P and S.  A 
             nonce (or initial counter value) sets up the 
@@ -387,29 +308,29 @@ class Blowfish(object):
         # expand the key to fully cover 18 4-byte words.  It 
         # is okay if the exceed that by a small number as we 
         # will only use what we need.
-        key = (key*(18*4//len(key)+1))
+        key = (key * (18 * 8 // len(key) + 1))
         # apply the key to P
         for i in xrange(18):
-            self.P[i] ^= fourByte2int(key[i*4:i*4+4])
+            self.P[i] ^= UF.fourByte2int(key[i*4:i*4+4])
         
         # now diffuse the key throughout S
         word = chr(0)*8
         for i in xrange(0, 18, 2):
-            word = self.encipher_block(word)
-            intword = eightByte2int(word)
-            self.P[i]   = intword>>32
-            self.P[i+1] = intword&0xFFFFFFFF
+            word = self.encryptBlock(word)
+            intword = UF.eightByte2int(word)
+            self.P[i]   = intword >> 32
+            self.P[i+1] = intword & 0xFFFFFFFF
         for i in xrange(4):
             for j in xrange(0, 256, 2):
-                word = self.encipher_block(word)
-                intword = eightByte2int(word)
-                self.S[i][j]   = intword>>32
-                self.S[i][j+1] = intword&0xFFFFFFFF
+                word = self.encryptBlock(word)
+                intword = UF.eightByte2int(word)
+                self.S[i][j]   = intword >> 32
+                self.S[i][j+1] = intword & 0xFFFFFFFF
         
         self.set_counter(nonce)     # only necessary if CTR mode
     
     
-    def encipher_block(self, block):
+    def encryptBlock(self, block):
         """ encrypt a single block of data
             
             data is to be a bytestring of exactly 8 bytes
@@ -417,8 +338,8 @@ class Blowfish(object):
             encipher_block() used to encrypt and decrypt when 
             in CTR mode
         """
-        xl = fourByte2int(block[:4])
-        xr = fourByte2int(block[4:])
+        xl = UF.fourByte2int(block[:4])
+        xr = UF.fourByte2int(block[4:])
         for i in xrange(self.N):
             xl = xl ^ self.P[i]
             xr = self._F(xl) ^ xr
@@ -426,18 +347,18 @@ class Blowfish(object):
         xl, xr = xr, xl
         xr = xr ^ self.P[self.N]
         xl = xl ^ self.P[self.N+1]
-        return int2fourByte(xl) + int2fourByte(xr)
+        return UF.int2fourByte(xl) + UF.int2fourByte(xr)
     
     
-    def decipher_block(self, block):
+    def decryptBlock(self, block):
         """ decrypt a single block of data
             
             data is to be a bytestring of exactly 8 bytes
         
             decipher_block() not needed when in CTR mode
         """
-        xl = fourByte2int(block[:4])
-        xr = fourByte2int(block[4:])
+        xl = UF.fourByte2int(block[:4])
+        xr = UF.fourByte2int(block[4:])
         for i in xrange(17, 1, -1):
             xl = xl ^ self.P[i]
             xr = self._F(xl) ^ xr
@@ -445,11 +366,11 @@ class Blowfish(object):
         xl, xr = xr, xl
         xr = xr ^ self.P[1]
         xl = xl ^ self.P[0]
-        return int2fourByte(xl) + int2fourByte(xr)
+        return UF.int2fourByte(xl) + UF.int2fourByte(xr)
     
     
     def _F(self, x):
-        "scramble things well"
+        "F Function for scrambling the data"
         a = (x & 0xFF000000) >> 24
         b = (x & 0x00FF0000) >> 16
         c = (x & 0x0000FF00) >>  8
@@ -465,7 +386,7 @@ class Blowfish(object):
         "sets the initial counter value"
         if not counter:
             # use date-time if no counter provided
-            counter = int2fourByte(int(time())&0xFFFFFFFF)
+            counter = UF.int2fourByte(int(time()) & 0xFFFFFFFF)
         # pad with nulls as needed
         self.counter = (counter+chr(0)*8)[:8]
         self.counter0 = self.counter
@@ -498,8 +419,8 @@ class Blowfish(object):
         self.data = self.data + data
         ciphertext = []
         while len(self.data) > 8:
-            cipherstream = self.encipher_block(self.counter)
-            ciphertext.append(xor(cipherstream, self.data[:8]))
+            cipherstream = self.encryptBlock(self.counter)
+            ciphertext.append(UF.xor(cipherstream, self.data[:8]))
             self.data = self.data[8:]
             self._incr_counter()
         return ''.join(ciphertext)
@@ -514,8 +435,8 @@ class Blowfish(object):
         ciphertext = []
         if data:
             ciphertext.append(self.CTR_update(data))
-        cipherstream = self.encipher_block(self.counter)
-        ciphertext.append(xor(cipherstream, self.data))
+        cipherstream = self.encryptBlock(self.counter)
+        ciphertext.append(UF.xor(cipherstream, self.data))
         self._incr_counter()    # not necessary for final()
         self.data = ''
         return ''.join(ciphertext)
@@ -547,41 +468,20 @@ def blowfishCTR(endecrypt, key, data, nonce=''):
         raise Exception('endecrypt not "e" or "d"')
 
 
-# --------------------------------------------------------------
-# utility functions
-
-def fourByte2int(bytestr):      # see also long2byt() below
-    """ convert a 4-byte string to an int (long) """
-    return unpack('!L', bytestr)[0]
-
-def eightByte2int(bytestr):
-    """ convert a 8-byte string to an int (long long) """
-    return unpack('!Q', bytestr)[0]
-
-def int2fourByte(x):            # see also long2byt() below
-    """ convert a number to a 4-byte string, high order 
-        truncation possible (in Python x could be a BIGNUM)
-    """
-    return pack('!L', x)
-
-def xor(s1, s2):
-    """ XORs the two input byte strings returning a result 
-        the length of the shorter one 
-    
-        zip() into pairs of chars up to the length of the 
-        shorter string, XORing the pair.  
-    """
-    return ''.join([chr(ord(a)^ord(b)) for a,b in zip(s1, s2)])
-
 if __name__ == '__main__':
     # a Q&D demo of the all-in-one function
     print ('    All-in-one demo:')
     key  = 'this is a test key'
     data = raw_input("Enter your message: ")
-    print ('      before:', data)
     encryptedmsg = blowfishCTR('e', key, data)
-    temp = encryptedmsg
-    temp = temp.encode('hex')
-    print ('      Encrypted Message: ', temp)
-    print ('       after:', blowfishCTR('d', key, encryptedmsg))
-    
+    try:
+        with open("encrypt.pickle", "wb") as data:
+            pickle.dump(encryptedmsg, data)
+    except pickle.PickleError as pk:
+        print ("File Error: %s"%(str(pk)))
+
+    try:
+        with open("decrypted.pickle", "wb") as dec:
+            pickle.dump(blowfishCTR('d', key, encryptedmsg), dec)
+    except pickle.PickleError as pk:
+        print ("File Error: %s"%(str(pk)))
