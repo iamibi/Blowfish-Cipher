@@ -1,0 +1,81 @@
+	Blowfish is a simple but effective block cipher designed 
+    by Bruce Schneier.  The design is a Feistel network with 
+    key dependent S-boxes.  Overall the algorithm is fast but 
+    the relatively long key setup time could be an issue if 
+    faced with lots of small files and frequent key changes.  
+    "Blowfish is unpatented and license-free, and is available 
+    free for all uses."  As a result, Blowfish is well known 
+    and in fairly widespread use.  
+    
+        key length: 64 to 448 bits (8 to 56 bytes)
+        blocksize:  64 bits (8 bytes)
+        rounds:     16
+        processor word-size: 32 bits
+    
+    Of note, Bruce uses the value of Pi to set the initial 
+    values of P and S.
+    
+    More at: http://www.schneier.com/blowfish.html
+             http://en.wikipedia.org/wiki/Blowfish_(cipher)
+    
+    This implementation of Blowfish is written in pure Python 
+    so obviously speed was not the top requirement.  In fact, 
+    it could well take a couple of seconds to encrypt a 100K 
+    of data.  Most C implementations are much faster.  If 
+    indeed faster Python run times are desired, consider 
+    selected optimizations such as reducing the frequency of 
+    string-to-word and word-to-string conversions, or the 
+    number of inner-loop function calls to perform them.  
+    ...AELFTS ;-)  Please note, however, that the use of byte 
+    strings for all data passing is intentional as a common 
+    denominator for consistency between platforms and 
+    languages.  
+    
+    This implementation of counter mode uses a nonce of up 
+    to 8 bytes.  Provided nonces will be truncated to 8 bytes 
+    or padded with nulls as appropriate.  The right-most bits 
+    are incremented as the counter.  If an initial value for 
+    the nonce/counter is not provided, the system clock 
+    (date-time) will be used.  
+    
+    This version is intended for Python 2.x.
+    
+    Sample usage:
+    
+        key = 'open sesame'
+        ot  = 'Now is the time for all good men....'
+        
+      CTR encrypt:
+        bf = Blowfish(key)
+        ct = bf.CTR_final(ot)           # send to recipient
+        counter0 = bf.get_counter0()    # send to recipient
+        
+      CTR decrypt:
+        bf = Blowfish(key, counter0)
+        pt = bf.CTR_final(ct)
+    
+    Remember, counter mode requires a different, unique nonce 
+    be used for each encryption using the same key, and that 
+    the decrypter will need to know the initial counter value.  
+    The nonce/counter need not be kept secret; it must simply 
+    be unique.  A common way to communicate the initial counter 
+    value is to prepend it to the ciphertext.  
+    
+    A while back Michael Gilfix wrote a pure Python version 
+    of Blowfish that was subsequently enhanced by Ivan Voras.  
+    Use Google to find them. Because both implementations are 
+    governed by the GPL, I was motivated to create a version 
+    with fewer encumberances.  Thus...
+        
+      Copyright (c) 2011 by Larry Bugbee, Kent, WA, USA
+      ALL RIGHTS RESERVED.
+      
+      blowfish.py IS EXPERIMENTAL SOFTWARE FOR EDUCATIONAL
+      PURPOSES ONLY.  IT IS MADE AVAILABLE "AS-IS" WITHOUT 
+      WARRANTY OR GUARANTEE OF ANY KIND.  USE SIGNIFIES 
+      ACCEPTANCE OF ALL RISK.  
+    
+    To make your learning and experimentation less cumbersome, 
+    blowfish.py is free for any use.  Feel free to extend, 
+    modify, and experiment.  I choose, however, to retain my 
+    copyrights.
