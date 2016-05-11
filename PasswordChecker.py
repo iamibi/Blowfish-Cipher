@@ -1,22 +1,20 @@
-#!/usr/bin/env python
-
 try:
     from BlowfishCipher import blowfishCTR
 except ImportError as IR:
     raise Exception("Import Error: %s"%(str(IR)))
 
+import pickle, sys
+
 #This function is needed to be called for checking or creating a new password
-def Cipher(password, mode):
+def Cipher(login, password, mode):
     key  = 'this is a test key'
-    #data = raw_input("Enter your message: ")
     if mode[0] == "e":
-        encryptedmsg = blowfishCTR('e', key, password)
+        encryptedmsg = blowfishCTR(mode[0], key, password)
         try:
             with open("shadow", "wb") as data:
-                pickle.dump(encryptedmsg, data)
+                pickle.dump("%s:%s"%(login, encryptedmsg), data)
         except pickle.PickleError as pk:
             raise Exception("File Error: %s"%(str(pk)))
-        encryptedmsg = ""
 
     elif mode[0] == "d":
         try:
@@ -24,10 +22,13 @@ def Cipher(password, mode):
                 content = pickle.load(data)
         except pickle.PickleError as pk:
             raise Exception("File Error: %s"%(str(pk)))
-        decryptmsg = blowfishCTR('d', key, content)
-
+        new = content.split(':')
+        if new[0] == login:
+            decryptmsg = blowfishCTR(mode[0], key, new[1])
+        else:
+            sys.exit("Invalid Credentials")
+        
         if decryptmsg == password:
             print ("Logging in...")
         else:
-            raise Exception("The password you entered is not correct. Please try again...")
-        decryptmsg = ""
+            print ("Wrong Password, Try Again")
