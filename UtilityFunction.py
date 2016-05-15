@@ -1,5 +1,8 @@
-# --------------------------------------------------------------
-# utility functions
+'''
+    UtilityFunction.py
+    
+    This module provides the necessary functions for the cipher.
+'''
 
 from struct import pack, unpack
 
