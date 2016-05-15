@@ -40,20 +40,6 @@
     
     This version is intended for Python 2.x.
     
-    Sample usage:
-    
-        key = 'open sesame'
-        ot  = 'Now is the time for all good men....'
-        
-      CTR encrypt:
-        bf = Blowfish(key)
-        ct = bf.CTR_final(ot)           # send to recipient
-        counter0 = bf.get_counter0()    # send to recipient
-        
-      CTR decrypt:
-        bf = Blowfish(key, counter0)
-        pt = bf.CTR_final(ct)
-    
     Remember, counter mode requires a different, unique nonce 
     be used for each encryption using the same key, and that 
     the decrypter will need to know the initial counter value.  
